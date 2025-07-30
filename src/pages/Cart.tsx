@@ -45,42 +45,76 @@ const Cart: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-lg shadow-md">
               {items.map((item, index) => (
                 <div
                   key={item.product.id}
-                  className={`p-6 ${index !== items.length - 1 ? 'border-b border-gray-200' : ''}`}
+                  className={`p-4 sm:p-6 ${index !== items.length - 1 ? 'border-b border-gray-200' : ''}`}
                 >
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
                     {/* Product Image */}
                     <img
                       src={item.product.image}
                       alt={item.product.name}
-                      className="w-20 h-20 object-cover rounded-lg"
+                      className="w-full sm:w-20 h-32 sm:h-20 object-cover rounded-lg"
                     />
 
                     {/* Product Details */}
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                       <Link
                         to={`/product/${item.product.id}`}
-                        className="text-lg font-semibold text-gray-800 hover:text-red-600"
+                        className="text-base sm:text-lg font-semibold text-gray-800 hover:text-red-600 block"
                       >
                         {item.product.name}
                       </Link>
-                      <p className="text-gray-600 text-sm mt-1">
+                      <p className="text-gray-600 text-sm mt-1 hidden sm:block">
                         {item.product.description.substring(0, 100)}...
                       </p>
-                      <div className="flex items-center space-x-2 mt-2">
+                      <div className="flex items-center space-x-2 mt-2 mb-4 sm:mb-0">
                         <span className="text-lg font-bold text-red-600">
                           ₹{item.product.price}
                         </span>
                         <span className="text-gray-500">/{item.product.unit}</span>
                       </div>
+                      
+                      {/* Mobile: Quantity and Remove Controls */}
+                      <div className="flex items-center justify-between sm:hidden">
+                        <div className="flex items-center border border-gray-300 rounded-lg">
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                            className="p-3 hover:bg-gray-100 touch-manipulation"
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="w-5 h-5" />
+                          </button>
+                          <span className="px-4 py-3 font-medium text-lg">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                            className="p-3 hover:bg-gray-100 touch-manipulation"
+                            disabled={item.quantity >= item.product.stock}
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        <button
+                          onClick={() => removeFromCart(item.product.id)}
+                          className="p-3 text-red-600 hover:bg-red-50 rounded-lg touch-manipulation"
+                        >
+                          <Trash2 className="w-6 h-6" />
+                        </button>
+                        
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-gray-800">
+                            ₹{item.product.price * item.quantity}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Quantity Controls */}
-                    <div className="flex items-center space-x-3">
+                    {/* Desktop: Quantity Controls */}
+                    <div className="hidden sm:flex items-center space-x-3">
                       <div className="flex items-center border border-gray-300 rounded-lg">
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
@@ -108,8 +142,8 @@ const Cart: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* Item Total */}
-                    <div className="text-right">
+                    {/* Desktop: Item Total */}
+                    <div className="hidden sm:block text-right">
                       <div className="text-lg font-bold text-gray-800">
                         ₹{item.product.price * item.quantity}
                       </div>
@@ -122,7 +156,7 @@ const Cart: React.FC = () => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:sticky lg:top-24">
               <h3 className="text-xl font-semibold mb-6">Order Summary</h3>
               
               <div className="space-y-3 mb-6">
