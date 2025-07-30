@@ -71,4 +71,5 @@ export interface CartContextType {
   clearCart: () => void;
   total: number;
   itemCount: number;
+  loading: boolean;
 }

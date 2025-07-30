@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authAPI } from '../services/api';
 import { User, AuthContextType, RegisterData } from '../types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,20 +33,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Mock authentication - in real app, this would be an API call
-      const users = JSON.parse(localStorage.getItem('kr_stores_users') || '[]');
-      const foundUser = users.find((u: User & { password: string }) => 
-        u.email === email && u.password === password
-      );
-
-      if (foundUser) {
-        const { password: _, ...userWithoutPassword } = foundUser;
-        setUser(userWithoutPassword);
-        localStorage.setItem('kr_stores_user', JSON.stringify(userWithoutPassword));
-        return true;
+      // Try admin login first for specific credentials
+      if (email === 'kr0792505@gmail.com' && password === 'vidhya') {
+        const response = await authAPI.adminLogin(email, password);
+        if (response.data.success) {
+          const userData = {
+            ...response.data.user,
+            isAdmin: response.data.user.role === 'admin'
+          };
+          setUser(userData);
+          localStorage.setItem('kr_stores_token', response.data.token);
+          localStorage.setItem('kr_stores_user', JSON.stringify(userData));
+          return true;
+        }
+      } else {
+        // Regular user login
+        const response = await authAPI.login(email, password);
+        if (response.data.success) {
+          const userData = {
+            ...response.data.user,
+            isAdmin: response.data.user.role === 'admin'
+          };
+          setUser(userData);
+          localStorage.setItem('kr_stores_token', response.data.token);
+          localStorage.setItem('kr_stores_user', JSON.stringify(userData));
+          return true;
+        }
       }
 
-      // Check for admin credentials
+      return false;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      // Fallback to localStorage for demo purposes
       if (email === 'admin@krstores.com' && password === 'admin123') {
         const adminUser: User = {
           id: 'admin',
@@ -59,10 +78,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('kr_stores_user', JSON.stringify(adminUser));
         return true;
       }
-
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
       return false;
     } finally {
       setLoading(false);
@@ -73,30 +88,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Mock registration - in real app, this would be an API call
+      const response = await authAPI.register(userData);
+      if (response.data.success) {
+        const userDataResponse = {
+          ...response.data.user,
+          isAdmin: response.data.user.role === 'admin'
+        };
+        setUser(userDataResponse);
+        localStorage.setItem('kr_stores_token', response.data.token);
+        localStorage.setItem('kr_stores_user', JSON.stringify(userDataResponse));
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      // Fallback to localStorage for demo purposes
       const users = JSON.parse(localStorage.getItem('kr_stores_users') || '[]');
       
-      // Check if user already exists
       if (users.find((u: User) => u.email === userData.email)) {
         return false;
       }
 
-      const newUser: User & { password: string } = {
+      const newUser: User = {
         id: Date.now().toString(),
-        ...userData,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        address: userData.address,
         isAdmin: false
       };
 
-      users.push(newUser);
+      users.push({ ...newUser, password: userData.password });
       localStorage.setItem('kr_stores_users', JSON.stringify(users));
-
-      const { password: _, ...userWithoutPassword } = newUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('kr_stores_user', JSON.stringify(userWithoutPassword));
+      setUser(newUser);
+      localStorage.setItem('kr_stores_user', JSON.stringify(newUser));
       
       return true;
-    } catch (error) {
-      console.error('Registration error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('kr_stores_user');
+    localStorage.removeItem('kr_stores_token');
+  };
+
+  const value: AuthContextType = {
+    user,
+    login,
+    register,
+    logout,
+    loading
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
       return false;
     } finally {
       setLoading(false);
