@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: krstores_postgres
+    environment:
+      POSTGRES_DB: krstores
+      POSTGRES_USER: krstores_user
+      POSTGRES_PASSWORD: krstores_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krstores_user -d krstores"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: krstores_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # FastAPI Backend
+  backend:
+    build: .
+    container_name: krstores_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://krstores_user:krstores_password@postgres:5432/krstores
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-jwt-key-change-in-production
+      - ADMIN_EMAIL=kr0792505@gmail.com
+      - ADMIN_PASSWORD=vidhya
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+  redis_data:
