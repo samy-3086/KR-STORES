@@ -24,4 +24,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     </CartContext.Provider>
   )
 }
-</boltContext>
+<boltContext.Provider value={...}>
+  {/* children */}
+</boltContext.Provider>
