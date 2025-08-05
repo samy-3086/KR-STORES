@@ -1,78 +1,76 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Phone, MapPin, Lock } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Eye, EyeOff, User, Mail, Phone, MapPin, Lock } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import ErrorMessage from '../components/ui/ErrorMessage'
 
 const Auth: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [isLogin, setIsLogin] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     password: '',
     phone: '',
     address: ''
-  });
+  })
 
-  const { login, register } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { signIn, signUp } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || '/'
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
-    });
-    setError('');
-  };
+    })
+    setError('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError('')
 
     try {
-      let success = false;
+      let result
 
       if (isLogin) {
-        success = await login(formData.email, formData.password);
-        if (!success) {
-          setError('Invalid email or password');
-        }
+        result = await signIn(formData.email, formData.password)
       } else {
         // Validation for registration
-        if (!formData.name || !formData.email || !formData.password || !formData.phone || !formData.address) {
-          setError('All fields are required');
-          setLoading(false);
-          return;
+        if (!formData.fullName || !formData.email || !formData.password || !formData.phone || !formData.address) {
+          setError('All fields are required')
+          setLoading(false)
+          return
         }
         
         if (formData.password.length < 6) {
-          setError('Password must be at least 6 characters long');
-          setLoading(false);
-          return;
+          setError('Password must be at least 6 characters long')
+          setLoading(false)
+          return
         }
 
-        success = await register(formData);
-        if (!success) {
-          setError('Email already exists or registration failed');
-        }
+        result = await signUp(formData.email, formData.password, formData.fullName, formData.phone, formData.address)
       }
 
-      if (success) {
-        navigate(from, { replace: true });
+      if (result.error) {
+        setError(result.error.message || 'Authentication failed')
+      } else {
+        navigate(from, { replace: true })
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('An error occurred. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -90,15 +88,15 @@ const Auth: React.FC = () => {
             {isLogin ? "Don't have an account? " : 'Already have an account? '}
             <button
               onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
+                setIsLogin(!isLogin)
+                setError('')
                 setFormData({
-                  name: '',
+                  fullName: '',
                   email: '',
                   password: '',
                   phone: '',
                   address: ''
-                });
+                })
               }}
               className="font-medium text-red-600 hover:text-red-500"
             >
@@ -111,7 +109,7 @@ const Auth: React.FC = () => {
           <div className="space-y-4">
             {!isLogin && (
               <div>
-                <label htmlFor="name" className="sr-only">
+                <label htmlFor="fullName" className="sr-only">
                   Full Name
                 </label>
                 <div className="relative">
@@ -119,11 +117,11 @@ const Auth: React.FC = () => {
                     <User className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    id="name"
-                    name="name"
+                    id="fullName"
+                    name="fullName"
                     type="text"
                     required={!isLogin}
-                    value={formData.name}
+                    value={formData.fullName}
                     onChange={handleInputChange}
                     className="appearance-none relative block w-full px-12 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
                     placeholder="Full Name"
@@ -234,11 +232,7 @@ const Auth: React.FC = () => {
             )}
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+          {error && <ErrorMessage message={error} />}
 
           <div>
             <button
@@ -246,21 +240,25 @@ const Auth: React.FC = () => {
               disabled={loading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Sign up'}
+              {loading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                isLogin ? 'Sign in' : 'Sign up'
+              )}
             </button>
           </div>
 
           {isLogin && (
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Demo Admin Login: admin@krstores.com / admin123
+                Demo Admin Login: kr0792505@gmail.com / vidhya
               </p>
             </div>
           )}
         </form>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Auth;
+export default Auth

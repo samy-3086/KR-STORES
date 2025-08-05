@@ -1,20 +1,35 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Star } from 'lucide-react';
-import { Product } from '../types';
-import { useCart } from '../contexts/CartContext';
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { ShoppingCart, Star } from 'lucide-react'
+import { useCart } from '../contexts/CartContext'
+import type { Database } from '../lib/supabase'
+
+type Product = Database['public']['Tables']['products']['Row'] & {
+  categories?: Database['public']['Tables']['categories']['Row']
+}
 
 interface ProductCardProps {
-  product: Product;
+  product: Product
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { addToCart } = useCart();
+  const { addToCart } = useCart()
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    addToCart(product);
-  };
+    e.preventDefault()
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url,
+      unit: product.unit,
+      stock: product.stock
+    })
+  }
+
+  const discountPercentage = product.original_price 
+    ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
+    : 0
 
   return (
     <Link to={`/product/${product.id}`} className="group">
@@ -22,14 +37,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Product Image */}
         <div className="relative overflow-hidden">
           <img
-            src={product.image}
+            src={product.image_url || '/placeholder-product.jpg'}
             alt={product.name}
             className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
-          {product.discount && (
+          {discountPercentage > 0 && (
             <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-semibold">
-              {product.discount}% OFF
+              {discountPercentage}% OFF
             </div>
           )}
           {product.featured && (
@@ -55,9 +70,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <span className="text-base sm:text-lg font-bold text-gray-900">
                 ₹{product.price}
               </span>
-              {product.originalPrice && (
+              {product.original_price && (
                 <span className="text-sm text-gray-500 line-through">
-                  ₹{product.originalPrice}
+                  ₹{product.original_price}
                 </span>
               )}
               <span className="text-sm text-gray-500">
@@ -89,7 +104,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </div>
     </Link>
-  );
-};
+  )
+}
 
-export default ProductCard;
+export default ProductCard

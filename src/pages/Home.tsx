@@ -1,11 +1,35 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, Shield, Clock, Star } from 'lucide-react';
-import ProductCard from '../components/ProductCard';
-import { getFeaturedProducts } from '../data/products';
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Truck, Shield, Clock, Star } from 'lucide-react'
+import { useProducts } from '../hooks/useProducts'
+import { useCategories } from '../hooks/useCategories'
+import ProductCard from '../components/ProductCard'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import ErrorMessage from '../components/ui/ErrorMessage'
 
 const Home: React.FC = () => {
-  const featuredProducts = getFeaturedProducts();
+  const { categories } = useCategories()
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { getFeaturedProducts } = useProducts()
+
+  useEffect(() => {
+    const loadFeaturedProducts = async () => {
+      try {
+        setLoading(true)
+        const { data, error } = await getFeaturedProducts(8)
+        if (error) throw new Error(error)
+        setFeaturedProducts(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load featured products')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFeaturedProducts()
+  }, [])
 
   return (
     <div className="min-h-screen">
@@ -73,38 +97,19 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <Link
-              to="/products?category=vegetables"
-              className="group bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow"
-            >
-              <div className="text-4xl mb-4">🥦</div>
-              <h3 className="font-semibold text-gray-800 group-hover:text-red-600">Vegetables</h3>
-              <p className="text-sm text-gray-600 mt-2">Fresh & Organic</p>
-            </Link>
-            <Link
-              to="/products?category=fruits"
-              className="group bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow"
-            >
-              <div className="text-4xl mb-4">🍎</div>
-              <h3 className="font-semibold text-gray-800 group-hover:text-red-600">Fruits</h3>
-              <p className="text-sm text-gray-600 mt-2">Sweet & Juicy</p>
-            </Link>
-            <Link
-              to="/products?category=spices"
-              className="group bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow"
-            >
-              <div className="text-4xl mb-4">🌶️</div>
-              <h3 className="font-semibold text-gray-800 group-hover:text-red-600">Spices</h3>
-              <p className="text-sm text-gray-600 mt-2">Aromatic & Pure</p>
-            </Link>
-            <Link
-              to="/products?category=groceries"
-              className="group bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow"
-            >
-              <div className="text-4xl mb-4">🍚</div>
-              <h3 className="font-semibold text-gray-800 group-hover:text-red-600">Groceries</h3>
-              <p className="text-sm text-gray-600 mt-2">Daily Essentials</p>
-            </Link>
+            {categories.map(category => (
+              <Link
+                key={category.id}
+                to={`/products?category=${category.slug}`}
+                className="group bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow"
+              >
+                <div className="text-4xl mb-4">{category.icon}</div>
+                <h3 className="font-semibold text-gray-800 group-hover:text-red-600 capitalize">
+                  {category.name}
+                </h3>
+                <p className="text-sm text-gray-600 mt-2">{category.description}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -126,11 +131,19 @@ const Home: React.FC = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.slice(0, 8).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : error ? (
+            <ErrorMessage message={error} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -211,7 +224,7 @@ const Home: React.FC = () => {
         </div>
       </section>
     </div>
-  );
-};
+  )
+}
 
-export default Home;
+export default Home
