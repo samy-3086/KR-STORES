@@ -7,7 +7,7 @@ import { useCart } from '../../contexts/CartContext';
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { user, logout } = useAuth();
+  const { user, profile, isAdmin, logout } = useAuth();
   const { itemCount } = useCart();
   const navigate = useNavigate();
 
@@ -50,9 +50,11 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="bg-red-600 text-white p-2 rounded-lg">
-              <span className="text-xl font-bold">KR</span>
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="KR Stores Logo"
+              className="h-12 w-auto rounded-lg shadow-md"
+            />
             <div>
               <h1 className="text-xl font-bold text-gray-800">KR Stores</h1>
               <p className="text-xs text-gray-600">Online Grocery & Essentials</p>
@@ -92,34 +94,33 @@ const Header: React.FC = () => {
 
             {/* User menu */}
             <div className="relative">
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <span className="hidden md:block text-sm text-gray-700">
-                    Hello, {user.name}
-                  </span>
-                  {user.isAdmin && (
-                    <Link
-                      to="/admin"
-                      className="hidden md:block bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                    >
-                      Admin
-                    </Link>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="text-sm text-red-600 hover:text-red-800"
+             {user ? (
+              <div className="flex items-center space-x-2">
+                <span className="hidden md:block text-sm text-gray-700">
+                   Hello, {profile?.full_name || 'User'}
+               </span>
+               {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="hidden md:block bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
                   >
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <Link to="/auth" className="flex items-center space-x-1 hover:bg-gray-100 p-2 rounded-lg">
-                  <User className="w-6 h-6 text-gray-700" />
-                  <span className="hidden md:block text-sm text-gray-700">Login</span>
-                </Link>
-              )}
-            </div>
-
+                   Admin
+                 </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link to="/auth" className="flex items-center space-x-1 hover:bg-gray-100 p-2 rounded-lg">
+                 <User className="w-6 h-6 text-gray-700" />
+                 <span className="hidden md:block text-sm text-gray-700">Login</span>
+              </Link>
+            )}
+            </div> 
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -218,3 +219,4 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+// ...existing code...

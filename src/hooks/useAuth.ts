@@ -141,7 +141,7 @@ export function useAuth() {
     ...authState,
     signUp,
     signIn,
-    signOut,
+    logout: signOut,
     updateProfile,
     isAdmin: authState.profile?.role === 'admin'
   }
