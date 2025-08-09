@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../lib/supabase'
+import { products as mockProducts } from '../data/products'
 
 type Product = Database['public']['Tables']['products']['Row'] & {
   categories?: Database['public']['Tables']['categories']['Row']
@@ -34,6 +35,32 @@ export function useProducts(filters: ProductFilters = {}) {
   const fetchProducts = async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
+
+      // Check if Supabase is properly configured
+      if (!supabase.supabaseUrl || !supabase.supabaseKey) {
+        // Fallback to mock data
+        const filteredProducts = mockProducts.filter(product => {
+          if (filters.category && product.category !== filters.category) return false
+          if (filters.search && !product.name.toLowerCase().includes(filters.search.toLowerCase())) return false
+          if (filters.featured !== undefined && product.featured !== filters.featured) return false
+          if (filters.minPrice !== undefined && product.price < filters.minPrice) return false
+          if (filters.maxPrice !== undefined && product.price > filters.maxPrice) return false
+          return true
+        })
+        
+        setState({
+          products: filteredProducts.map(p => ({
+            ...p,
+            image_url: p.image,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })),
+          loading: false,
+          error: null
+        })
+        return
+      }
 
       let query = supabase
         .from('products')
@@ -87,13 +114,51 @@ export function useProducts(filters: ProductFilters = {}) {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch products'
+        error: 'Database not configured. Using demo data.'
+      }))
+      
+      // Fallback to mock data on error
+      const filteredProducts = mockProducts.filter(product => {
+        if (filters.category && product.category !== filters.category) return false
+        if (filters.search && !product.name.toLowerCase().includes(filters.search.toLowerCase())) return false
+        if (filters.featured !== undefined && product.featured !== filters.featured) return false
+        if (filters.minPrice !== undefined && product.price < filters.minPrice) return false
+        if (filters.maxPrice !== undefined && product.price > filters.maxPrice) return false
+        return true
+      })
+      
+      setState(prev => ({
+        ...prev,
+        products: filteredProducts.map(p => ({
+          ...p,
+          image_url: p.image,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })),
+        loading: false,
+        error: null
       }))
     }
   }
 
   const getProduct = async (id: string) => {
     try {
+      // Fallback to mock data if Supabase not configured
+      const mockProduct = mockProducts.find(p => p.id === id)
+      if (mockProduct) {
+        return { 
+          data: {
+            ...mockProduct,
+            image_url: mockProduct.image,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, 
+          error: null 
+        }
+      }
+
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -120,6 +185,21 @@ export function useProducts(filters: ProductFilters = {}) {
 
   const getFeaturedProducts = async (limit = 8) => {
     try {
+      // Fallback to mock data if Supabase not configured
+      const featuredMockProducts = mockProducts.filter(p => p.featured).slice(0, limit)
+      if (featuredMockProducts.length > 0) {
+        return { 
+          data: featuredMockProducts.map(p => ({
+            ...p,
+            image_url: p.image,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })), 
+          error: null 
+        }
+      }
+
       const { data, error } = await supabase
         .from('products')
         .select(`

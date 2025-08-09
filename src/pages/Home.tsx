@@ -6,6 +6,7 @@ import { useCategories } from '../hooks/useCategories'
 import ProductCard from '../components/ProductCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import ErrorMessage from '../components/ui/ErrorMessage'
+import DemoNotice from '../components/ui/DemoNotice'
 
 const Home: React.FC = () => {
   const { categories } = useCategories()
@@ -33,6 +34,11 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Demo Notice */}
+      <div className="container mx-auto px-4 pt-8">
+        <DemoNotice />
+      </div>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-red-600 to-red-700 text-white py-16">
         <div className="container mx-auto px-4">
