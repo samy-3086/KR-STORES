@@ -88,9 +88,6 @@ npm run dev
 
 ## 🔐 Admin Access
 
-**Admin Credentials:**
-- Email: kr0792505@gmail.com
-- Password: vidhya
 
 Admin users have access to:
 - Product management (CRUD operations)
