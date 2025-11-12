@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, ShoppingCart, Users, TrendingUp, Plus, Edit, Trash2, Eye, BarChart3 } from 'lucide-react';
+import { Package, ShoppingCart, Users, TrendingUp, Plus, CreditCard as Edit, Trash2, Eye, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
