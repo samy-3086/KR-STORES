@@ -1,1 +1,0 @@
-# KR Stores Backend Application
