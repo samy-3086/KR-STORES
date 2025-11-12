@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, isConfigured } from '../lib/supabase'
 import type { Database } from '../lib/supabase'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -21,6 +21,12 @@ export function useAuth() {
   })
 
   useEffect(() => {
+    // Skip auth setup if Supabase not configured
+    if (!isConfigured) {
+      setAuthState(prev => ({ ...prev, loading: false }))
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuthState(prev => ({ ...prev, session, user: session?.user ?? null }))
@@ -69,6 +75,10 @@ export function useAuth() {
   }
 
   const signUp = async (email: string, password: string, fullName: string, phone?: string, address?: string) => {
+    if (!isConfigured) {
+      return { data: null, error: { message: 'Demo mode - Supabase not configured' } }
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -92,6 +102,10 @@ export function useAuth() {
   }
 
   const signIn = async (email: string, password: string) => {
+    if (!isConfigured) {
+      return { data: null, error: { message: 'Demo mode - Supabase not configured' } }
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

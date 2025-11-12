@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, ShoppingCart, Users, TrendingUp, Plus, CreditCard as Edit, Trash2, Eye, BarChart3 } from 'lucide-react';
+import { Package, ShoppingCart, Users, TrendingUp, BarChart3, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProducts } from '../hooks/useProducts';
-import { useOrders } from '../hooks/useOrders';
+import { isConfigured } from '../lib/supabase';
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import ErrorMessage from '../components/ui/ErrorMessage';
 
 const Admin: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -14,7 +13,6 @@ const Admin: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('analytics');
   const { products } = useProducts();
-  const { getMyOrders } = useOrders();
 
   useEffect(() => {
     if (!user || !isAdmin) {
@@ -27,6 +25,31 @@ const Admin: React.FC = () => {
     return null;
   }
 
+  // Show setup notice if Supabase not configured
+  if (!isConfigured) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Admin Dashboard</h2>
+          <p className="text-gray-600 mb-6">
+            To access the full admin dashboard with real-time analytics, order management, and business insights, please set up Supabase first.
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-amber-700">
+              <strong>Quick Setup:</strong> Follow the SUPABASE_SETUP.md guide to enable the complete admin experience in just 5 minutes.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Back to Store
+          </button>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -174,13 +197,7 @@ const Admin: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-800">Orders Management</h2>
             
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Orders Management</h3>
-              <p className="text-gray-600">
-                Order management functionality will be available once Supabase is properly configured.
-              </p>
-            </div>
+            <AnalyticsDashboard />
           </div>
         )}
       </div>

@@ -3,8 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Allow the app to work without Supabase configuration for demo purposes
-const supabaseClient = supabaseUrl && supabaseAnonKey 
+// Check if Supabase is properly configured
+const isSupabaseConfigured = supabaseUrl && supabaseAnonKey && 
+  supabaseUrl !== 'your_supabase_project_url' && 
+  supabaseAnonKey !== 'your_supabase_anon_key'
+
+// Create Supabase client or mock for demo
+export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
@@ -12,21 +17,29 @@ const supabaseClient = supabaseUrl && supabaseAnonKey
         detectSessionInUrl: true
       }
     })
-  : null
+  : {
+      // Mock client for demo mode
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => Promise.resolve({ data: [], error: { message: 'Demo mode - Supabase not configured' } })
+          })
+        })
+      }),
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        signUp: () => Promise.resolve({ data: null, error: { message: 'Demo mode - Please configure Supabase' } }),
+        signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Demo mode - Please configure Supabase' } }),
+        signOut: () => Promise.resolve({ error: null })
+      },
+      functions: {
+        invoke: () => Promise.resolve({ data: null, error: { message: 'Demo mode - Edge functions not available' } })
+      }
+    }
 
-export const supabase = supabaseClient || {
-  supabaseUrl: null,
-  supabaseKey: null,
-  from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) }) }),
-  auth: {
-    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    signUp: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
-    signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
-    signOut: () => Promise.resolve({ error: null })
-  }
-}
-
+// Export configuration status
+export const isConfigured = isSupabaseConfigured
 // Database types
 export interface Database {
   public: {
