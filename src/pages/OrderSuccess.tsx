@@ -4,7 +4,8 @@ import { CheckCircle, Package, Clock, Phone } from 'lucide-react';
 
 const OrderSuccess: React.FC = () => {
   const location = useLocation();
-  const orderId = location.state?.orderId || 'KR' + Date.now();
+  const { orderId, orderNumber } = location.state || {};
+  const displayOrderId = orderNumber || orderId || 'KR' + Date.now();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
@@ -27,7 +28,7 @@ const OrderSuccess: React.FC = () => {
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-gray-600">Order ID:</span>
-              <span className="font-semibold text-gray-800">{orderId}</span>
+              <span className="font-semibold text-gray-800">{displayOrderId}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Status:</span>

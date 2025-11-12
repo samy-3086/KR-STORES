@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { CreditCard, Truck, Calendar, Clock, MapPin } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { usePayment } from '../hooks/usePayment';
+import { useOrders } from '../hooks/useOrders';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ErrorMessage from '../components/ui/ErrorMessage';
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { processPayment, calculateDeliveryFee } = usePayment();
+  const { createOrder } = useOrders();
 
   const [orderData, setOrderData] = useState({
     deliveryDate: '',
@@ -16,10 +22,23 @@ const Checkout: React.FC = () => {
     specialInstructions: ''
   });
 
-  const [loading, setLoading] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState({
+    fee: 0,
+    freeDelivery: false,
+    estimatedTime: '30-45 minutes'
+  });
 
-  const deliveryFee = total >= 500 ? 0 : 50;
-  const finalTotal = total + deliveryFee;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Calculate delivery fee when component mounts
+  React.useEffect(() => {
+    if (profile?.address) {
+      calculateDeliveryFee(profile.address, total).then(setDeliveryInfo);
+    }
+  }, [profile?.address, total]);
+
+  const finalTotal = total + deliveryInfo.fee;
 
   // Generate available delivery dates (next 7 days)
   const getAvailableDates = () => {
@@ -59,45 +78,55 @@ const Checkout: React.FC = () => {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     if (!orderData.deliveryDate) {
-      alert('Please select a delivery date');
+      setError('Please select a delivery date');
+      return;
+    }
+
+    if (!profile?.address) {
+      setError('Please update your profile with a delivery address');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Simulate order processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create order in database
+      const { data: order, error: orderError } = await createOrder({
+        delivery_address: profile.address,
+        delivery_date: orderData.deliveryDate,
+        delivery_time_slot: orderData.deliveryTime,
+        delivery_instructions: orderData.specialInstructions,
+        payment_method: orderData.paymentMethod as 'cod' | 'online',
+        items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price
+        }))
+      });
 
-      // Create order object
-      const order = {
-        id: Date.now().toString(),
-        userId: user?.id || '',
-        items: items,
-        total: finalTotal,
-        status: 'confirmed' as const,
-        deliveryDate: orderData.deliveryDate,
-        deliveryTime: orderData.deliveryTime,
-        specialInstructions: orderData.specialInstructions,
-        paymentMethod: orderData.paymentMethod,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      if (orderError) throw new Error(orderError);
 
-      // Store order in localStorage (in real app, this would be sent to backend)
-      const existingOrders = JSON.parse(localStorage.getItem('kr_stores_orders') || '[]');
-      existingOrders.push(order);
-      localStorage.setItem('kr_stores_orders', JSON.stringify(existingOrders));
+      // Process payment
+      const paymentResult = await processPayment({
+        orderId: order.id,
+        amount: finalTotal,
+        paymentMethod: orderData.paymentMethod as 'stripe' | 'razorpay' | 'cod'
+      });
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Payment failed');
+      }
 
       // Clear cart
       clearCart();
 
       // Navigate to success page
-      navigate('/order-success', { state: { orderId: order.id } });
+      navigate('/order-success', { state: { orderId: order.id, orderNumber: order.order_number } });
     } catch (error) {
-      alert('Failed to place order. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,6 +140,10 @@ const Checkout: React.FC = () => {
   if (items.length === 0) {
     navigate('/cart');
     return null;
+  }
+
+  if (!profile) {
+    return <LoadingSpinner size="lg" />;
   }
 
   return (
@@ -128,9 +161,9 @@ const Checkout: React.FC = () => {
                 Delivery Address
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="font-medium">{user.name}</p>
-                <p className="text-gray-600">{user.address}</p>
-                <p className="text-gray-600">{user.phone}</p>
+                <p className="font-medium">{profile.full_name}</p>
+                <p className="text-gray-600">{profile.address}</p>
+                <p className="text-gray-600">{profile.phone}</p>
               </div>
             </div>
 
@@ -239,6 +272,8 @@ const Checkout: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {error && <ErrorMessage message={error} />}
           </div>
 
           {/* Order Summary */}
@@ -277,14 +312,14 @@ const Checkout: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fee</span>
                   <span>
-                    {deliveryFee === 0 ? (
+                    {deliveryInfo.freeDelivery ? (
                       <span className="text-green-600">FREE</span>
                     ) : (
-                      `₹${deliveryFee}`
+                      `₹${deliveryInfo.fee}`
                     )}
                   </span>
                 </div>
-                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                {!deliveryInfo.freeDelivery && (
                   <span>Total</span>
                   <span>₹{finalTotal}</span>
                 </div>
@@ -296,7 +331,14 @@ const Checkout: React.FC = () => {
                 disabled={loading}
                 className="w-full mt-6 bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Placing Order...' : `Place Order - ₹${finalTotal}`}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <LoadingSpinner size="sm" />
+                    <span className="ml-2">Placing Order...</span>
+                  </div>
+                ) : (
+                  `Place Order - ₹${finalTotal}`
+                )}
               </button>
 
               <p className="text-xs text-gray-500 mt-3 text-center">
