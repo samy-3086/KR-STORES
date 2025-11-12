@@ -320,9 +320,11 @@ const Checkout: React.FC = () => {
                   </span>
                 </div>
                 {!deliveryInfo.freeDelivery && (
-                  <span>Total</span>
-                  <span>₹{finalTotal}</span>
-                </div>
+                  <div className="flex justify-between font-semibold text-lg">
+                    <span>Total</span>
+                    <span>₹{finalTotal}</span>
+                  </div>
+                )}
               </div>
 
               {/* Place Order Button */}
